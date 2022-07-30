@@ -44,13 +44,13 @@ class Section():
         self.v_data = np.full(self.data_ammount,velocity) # 14400 hardcode
         self.a_data = np.full(self.data_ammount,0) # 14400 hardcode
 
-    def calc_poly(self):
+    def calc_poly(self, v_s = 0, a_s = 0, v_e = 0, a_e = 0, wp = 0.5):
         if self.t_s > self.t_e:
-            t_e_calc = self.t_e + self.cycl
+            t_e_calc = self.t_e + self.cycle
         else:
             t_e_calc = self.t_e
 
-        b = np.array([self.p_s, 0, 0, self.p_e, 0, 0])
+        b = np.array([self.p_s, v_s, a_s, self.p_e, v_e, a_e])
         Arr = np.zeros([0,6])
 
         for x in [self.t_s, t_e_calc]:
@@ -108,16 +108,16 @@ class Curve():
         pass
 
     def calculate_data(self):
-        for sec in self.sections:
+        for sec in self.sections: #nur geraden und raste berechnen
             match sec.rule:
                 case "Rast":
                     sec.calc_pause()
                 case "v. const.":
                     sec.calc_vconst()
                 case "Poly 5":
-                    sec.calc_poly()
+                    continue
                 case "poly 5 connector":
-                    sec.calc_poly()
+                    continue
             if sec.t_s > sec.t_e:
                 i_start = int(sec.t_s*self.scale)
                 i_end = int(sec.t_e*self.scale)
@@ -136,8 +136,45 @@ class Curve():
                 self.p[i_start:i_end] = sec.p_data[i_start:i_end]
                 self.v[i_start:i_end] = sec.v_data[i_start:i_end]
                 self.a[i_start:i_end] = sec.a_data[i_start:i_end]
-         
-        self.data = np.array([self.t,self.p])
+
+        for sec in self.sections: #nur polynome berechnen
+            match sec.rule:
+                case "Rast":
+                    continue
+                case "v. const.":
+                    continue
+                case "Poly 5":
+                    v0 = self.v[int(sec.t_s*self.scale)-1]
+                    a0 = self.a[int(sec.t_s*self.scale)-1]
+                    v1 = self.v[int(sec.t_e*self.scale)]
+                    a1 = self.a[int(sec.t_e*self.scale)]
+                    sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
+                case "poly 5 connector":
+                    v0 = self.v[int(sec.t_s*self.scale)-1]
+                    a0 = self.a[int(sec.t_s*self.scale)-1]
+                    v1 = self.v[int(sec.t_e*self.scale)]
+                    a1 = self.a[int(sec.t_e*self.scale)]
+                    sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
+            if sec.t_s > sec.t_e:
+                i_start = int(sec.t_s*self.scale)
+                i_end = int(sec.t_e*self.scale)
+                i_full = int(self.zyklus*self.scale+1)
+                i_over = int(i_full+i_end)
+                self.p[i_start:] = sec.p_data[i_start:i_full]
+                self.p[:i_end] = sec.p_data[i_full:i_over]
+                self.v[i_start:] = sec.v_data[i_start:i_full]
+                self.v[:i_end] = sec.v_data[i_full:i_over]
+                self.a[i_start:] = sec.a_data[i_start:i_full]
+                self.a[:i_end] = sec.a_data[i_full:i_over]
+
+            else:
+                i_start = int(sec.t_s*self.scale)
+                i_end = int(sec.t_e*self.scale)
+                self.p[i_start:i_end] = sec.p_data[i_start:i_end]
+                self.v[i_start:i_end] = sec.v_data[i_start:i_end]
+                self.a[i_start:i_end] = sec.a_data[i_start:i_end]
+
+        self.data = np.array([self.t,self.p]) #v und a noch hinzufügen
     
     def delete_connection(self):
         for sec in self.sections:
@@ -155,8 +192,8 @@ class Curve():
         else:
             self.points.append([this_section.t_e, this_section.p_e])
 
-
-        self.create_connection(this_section.pos)
+        if self.get_total_time() != self.zyklus:
+            self.create_connection(this_section.pos)
         self.calculate_data()
     
     def create_section(self,t_start, t_end, p_start, p_end, position_in_curve ,rule):
@@ -190,6 +227,16 @@ class Curve():
         else:
             result = len(self.sections) - 1
             return result
+
+    def get_total_time(self):
+        time = 0
+        for sec in self.sections:
+            if sec.t_s > sec.t_e:
+                time = time + sec.t_s + self.zyklus - sec.t_e
+            else:
+                time = time + sec.t_e - sec.t_s
+        return time
+            
 
     def handle_over_360(self):
         #if ts > te -> drüber rechnen und ansetzen
