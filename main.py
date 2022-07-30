@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import Kurve
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+customtkinter.set_default_color_theme("green")  # Themes: "blue" (standard), "green", "dark-blue"
 
 
 class App(customtkinter.CTk):
@@ -140,7 +140,7 @@ class App(customtkinter.CTk):
         self.button_plot.grid(row=12,column=2, pady=10,padx=20)
 
     def create_curve(self):
-        self.curve = Kurve.Curve("Kurve 1",60,360) #hard code 60, 360
+        self.curve = Kurve.Curve("Kurve 1",60,360) #hardcode 60, 360
         self.button_1.configure(state="disabled", text="Kurve 1")
 
     def create_section(self):
