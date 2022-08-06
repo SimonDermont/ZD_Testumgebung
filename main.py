@@ -1,3 +1,4 @@
+# 'https://www.inventicons.com/inventicons'>Add Chart vector icon created by Invent Icons - InventIcons.com
 
 import tkinter
 import tkinter.messagebox
@@ -5,143 +6,186 @@ import customtkinter
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+from PIL import Image, ImageTk
 
 import Kurve
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("green")  # Themes: "blue" (standard), "green", "dark-blue"
+PATH = os.path.dirname(os.path.realpath(__file__))
 
+def main():
+    app = App()
+    app.mainloop()
 
 class App(customtkinter.CTk):
 
-    WIDTH = int(1920*0.8)
+    WIDTH = 1536
     HEIGHT = 500
-
 
     def __init__(self):
         super().__init__()
 
-        self.title("Test1.py")
+        self.title("Zeitdiagramm")
         self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
+        self.minsize(800,350)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
+
+        image_size = 20
+        self.curves_buttons = []
+        self.sections_buttons = []
+        self.curves = []
+        self.zyklus = ""
+
+        add_curve_image = ImageTk.PhotoImage(Image.open(PATH + "/images/add-curve.png").resize((image_size, image_size)))
+        add_section_image = ImageTk.PhotoImage(Image.open(PATH + "/images/add-section.png").resize((image_size, image_size)))
 
         # ============ create tree frames ============
 
-        # configure grid layout (3x1)
-        self.grid_columnconfigure(2, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        # configure grid layout (3x2)
+        self.grid_columnconfigure(1, weight=1, minsize=230, )
+        self.grid_rowconfigure(0, weight=1, minsize=380)
 
-        self.frame_left = customtkinter.CTkFrame(master=self, width=180, corner_radius=0)
+        self.frame_left = customtkinter.CTkFrame(master=self, width=80, corner_radius=0)
         self.frame_left.grid(row=0, column=0, sticky="nswe")
 
-        self.frame_middle = customtkinter.CTkFrame(master=self)
-        self.frame_middle.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
+        self.frame_main = customtkinter.CTkFrame(master=self, corner_radius=0)
+        self.frame_main.grid(row=0, column=1, sticky="nswe", padx=0, pady=0)
 
-        self.frame_right = customtkinter.CTkFrame(master=self)
-        self.frame_right.grid(row=0, column=2, sticky="nse", padx=0, pady=0)
+        self.frame_main.grid_columnconfigure(0, weight=1)
+        self.frame_main.grid_rowconfigure(1, weight=1)
+
+        self.frame_menu = customtkinter.CTkFrame(master=self.frame_main, height=30, corner_radius=0)
+        self.frame_menu.grid(row=0, column=0, sticky="nswe", padx=(20,0), pady=0, columnspan=2)
+
+        # configure grid layout for main (1x2)
+        self.frame_middle = customtkinter.CTkFrame(master=self.frame_main)
+        self.frame_middle.grid(row=1, column=0, sticky="nswe", padx=(20,20), pady=(10,0))
+
+        self.frame_right = customtkinter.CTkFrame(master=self.frame_main, width=200)
+        self.show_frame_right()
+
 
         # ============ frame_left ============
 
-        # configure grid layout (1x11)
-        self.frame_left.grid_rowconfigure(0, minsize=10)   # empty row with minsize as spacing
-        self.frame_left.grid_rowconfigure(5, weight=1)  # empty row as spacing
-        self.frame_left.grid_rowconfigure(8, minsize=20)    # empty row with minsize as spacing
-        self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
+        self.label_curve_name = customtkinter.CTkLabel(master=self.frame_left, text = "Leer",text_font=("Roboto Medium", -16))
+        self.label_curve_name.grid(row=0, column=0, pady=10, padx=10)
 
-        self.label_1 = customtkinter.CTkLabel(master=self.frame_left, text="Kurve 1", text_font=("Roboto Medium", -16))  # font name and size in px
-        self.label_1.grid(row=1, column=0, pady=10, padx=10)
+        self.button_show_section_frame = customtkinter.CTkButton(master=self.frame_left, image=add_section_image, text="", width=50, command=self.show_section_frame)
+        self.button_show_section_frame.grid(row=9, column=0, pady=10, padx=10)
 
-        self.button_1 = customtkinter.CTkButton(master=self.frame_left, text="Kurve erstellen", command=self.create_curve)
-        self.button_1.grid(row=2, column=0, pady=10, padx=20)
+        self.optionmenu_theme = customtkinter.CTkOptionMenu(master=self.frame_left, values=["Light", "Dark", "System"], command=self.change_appearance_mode)
+        self.optionmenu_theme.grid(row=10, column=0, pady=10, padx=20, sticky="w")
 
-        self.button_2 = customtkinter.CTkButton(master=self.frame_left, text="Button 2")
-        self.button_2.grid(row=3, column=0, pady=10, padx=20)
+        # ============ frame_menu ============
 
-        self.button_3 = customtkinter.CTkButton(master=self.frame_left, text="Button 3")
-        self.button_3.grid(row=4, column=0, pady=10, padx=20)
-
-        self.label_mode = customtkinter.CTkLabel(master=self.frame_left, text="Appearance Mode:")
-        self.label_mode.grid(row=9, column=0, pady=0, padx=20, sticky="w")
-
-        self.optionmenu_1 = customtkinter.CTkOptionMenu(master=self.frame_left, values=["Light", "Dark", "System"], command=self.change_appearance_mode)
-        self.optionmenu_1.grid(row=10, column=0, pady=10, padx=20, sticky="w")
-
-        # ============ frame_right ============
-
-        # configure grid layout (2x9)
-        self.frame_middle.rowconfigure((0, 1, 2, 3), weight=1)
-        self.frame_middle.rowconfigure(9, weight=10)
-        self.frame_middle.columnconfigure((0, 1), weight=1)
-        self.frame_middle.columnconfigure(1, weight=0)
-
-        self.frame_info = customtkinter.CTkFrame(master=self.frame_middle)
-        self.frame_info.grid(row=0, column=0, columnspan=2, rowspan=4, pady=20, padx=20, sticky="nsew")
-
-        # ============ frame_info ============
-
-        # configure grid layout (1x1)
-        self.frame_info.rowconfigure(0, weight=1)
-        self.frame_info.columnconfigure(0, weight=1)
-
-
+        self.button_new_curve = customtkinter.CTkButton(master=self.frame_menu, text="", image=add_curve_image, command=self.open_new_curve_window, width=70, height=30)
+        self.button_new_curve.grid(row=0, column=100, pady=5, padx=10)
+        
         # ============ frame_middle ============
 
 
-        self.entry = customtkinter.CTkEntry(master=self.frame_middle, width=120, placeholder_text="CTkEntry")
-        self.entry.grid(row=9, column=0, columnspan=2, pady=20, padx=20, sticky="we")
-
-        self.button_5 = customtkinter.CTkButton(master=self.frame_middle, text="print(len(self.curve.sections))", border_width=2,  # <- custom border_width
-                                                fg_color=None,  # <- no fg_color
-                                                command=self.debug_button)
-                                                
-        self.button_5.grid(row=9, column=2, columnspan=1, pady=20, padx=20, sticky="we")
-
-        # set default values
-        self.optionmenu_1.set("Dark")
-        self.button_3.configure(state="disabled", text="Disabled Button 3")
 
         # ============ frame_right ============
-        self.frame_right.grid_rowconfigure(0, minsize=10)   # empty row with minsize as spacing
-        self.frame_right.grid_rowconfigure(5, weight=0)  # empty row as spacing
-        self.frame_right.grid_rowconfigure(8, minsize=10)    # empty row with minsize as spacing
-        self.frame_right.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
-        
+
         self.label_section1 = customtkinter.CTkLabel(master=self.frame_right, text="Section 1",text_font=("Roboto Medium", -12))
-        self.label_section1.grid(row=0, column=0, columnspan=1, pady=2, padx=10)
-
-        self.label_t_start = customtkinter.CTkLabel(master=self.frame_right, text="t_start",text_font=("Roboto Medium", -10))
-        self.label_t_start.grid(row=1, column=0, columnspan=1, pady=2, padx=10)
-        self.entry_t_start = customtkinter.CTkEntry(master=self.frame_right, width=60, placeholder_text="t_start" )
-        self.entry_t_start.grid(row=1, column=1, pady=0, padx=20, columnspan=1)
-
-        self.label_t_end = customtkinter.CTkLabel(master=self.frame_right, text="t_end",text_font=("Roboto Medium", -10))
-        self.label_t_end.grid(row=2, column=0, columnspan=1, pady=2, padx=10,)
-        self.entry_t_end = customtkinter.CTkEntry(master=self.frame_right, width=60, placeholder_text="t_end")
-        self.entry_t_end.grid(row=2, column=1, pady=0, padx=20, columnspan=1)
-
-        self.label_s_start = customtkinter.CTkLabel(master=self.frame_right, text="s_start",text_font=("Roboto Medium", -10))
-        self.label_s_start.grid(row=3, column=0, columnspan=1, pady=2, padx=10)
-        self.entry_s_start = customtkinter.CTkEntry(master=self.frame_right, width=60, placeholder_text="s_start")
-        self.entry_s_start.grid(row=3, column=1, pady=0, padx=20, columnspan=1)
-
-        self.label_s_end = customtkinter.CTkLabel(master=self.frame_right, text="s_end",text_font=("Roboto Medium", -10))
-        self.label_s_end.grid(row=4, column=0, columnspan=1, pady=2, padx=10)
-        self.entry_s_end = customtkinter.CTkEntry(master=self.frame_right, width=60, placeholder_text="s_end")
-        self.entry_s_end.grid(row=4, column=1, pady=0, padx=20, columnspan=1)
+        self.label_section1.grid(row=0, column=0, columnspan=1, pady=10, padx=0)
 
         self.dropdown_rule = customtkinter.CTkOptionMenu(master=self.frame_right,values=["Rast", "v. const.", "Poly 5"])
-        self.dropdown_rule.grid(row=5, column=1, pady=0, padx=20, columnspan=1)
+        self.dropdown_rule.grid(row=0, column=1, columnspan=1, pady=0, padx=10)
         self.dropdown_rule.set("Bewegungsgesetz")
+        # ============ frame_right_start ============
+        self.frame_right_start = customtkinter.CTkFrame(master=self.frame_right, corner_radius=0)
+        self.frame_right_start.grid(row=1, column=0, columnspan=2, pady=5, padx=2)
+
+        self.label_t_start = customtkinter.CTkLabel(master=self.frame_right_start, text="t_start",text_font=("Roboto Medium", -10), width=60)
+        self.label_t_start.pack(side="left")
+        self.entry_t_start = customtkinter.CTkEntry(master=self.frame_right_start, width=60, placeholder_text="t_start" )
+        self.entry_t_start.pack(side="left")
+
+        self.label_s_start = customtkinter.CTkLabel(master=self.frame_right_start, text="s_start",text_font=("Roboto Medium", -10), width=60)
+        self.label_s_start.pack(side="left")
+        self.entry_s_start = customtkinter.CTkEntry(master=self.frame_right_start, width=60, placeholder_text="s_start")
+        self.entry_s_start.pack(side="left")
+        # ============ frame_right_end ============
+        self.frame_right_end = customtkinter.CTkFrame(master=self.frame_right, corner_radius=0)
+        self.frame_right_end.grid(row=2, column=0, columnspan=2, pady=5, padx=2)
+
+        self.label_t_end = customtkinter.CTkLabel(master=self.frame_right_end, text="t_end",text_font=("Roboto Medium", -10), width=60)
+        self.label_t_end.pack(side="left")
+        self.entry_t_end = customtkinter.CTkEntry(master=self.frame_right_end, width=60, placeholder_text="t_end")
+        self.entry_t_end.pack(side="left")
+
+        self.label_s_end = customtkinter.CTkLabel(master=self.frame_right_end, text="s_end",text_font=("Roboto Medium", -10), width=60)
+        self.label_s_end.pack(side="left")
+        self.entry_s_end = customtkinter.CTkEntry(master=self.frame_right_end, width=60, placeholder_text="s_end")
+        self.entry_s_end.pack(side="left")
+
 
         self.button_calculate = customtkinter.CTkButton(master=self.frame_right, text="Abschnitt erstellen",command=self.create_section)
-        self.button_calculate.grid(row=11,column=2, pady=10,padx=20)
+        self.button_calculate.grid(row=11,column=1, pady=10,padx=20)
 
         self.button_plot = customtkinter.CTkButton(master=self.frame_right, text="Kurve darstellen",command=self.graph)
-        self.button_plot.grid(row=12,column=2, pady=10,padx=20)
+        self.button_plot.grid(row=12,column=1, pady=10,padx=20)
+        
 
-    def create_curve(self):
-        self.curve = Kurve.Curve("Kurve 1",60,360) #hardcode 60, 360
-        self.button_1.configure(state="disabled", text="Kurve 1")
+        self.frame_right.grid_forget()
+
+    def new_curve_button(self):
+        
+        text = "Kurve {}".format(len(self.curves_buttons)+1)
+        self.curves_buttons.append(customtkinter.CTkButton(master=self.frame_menu, text=text, command=lambda c=len(self.curves_buttons): self.button_existing_curve_click(c), width=70, height=30))
+       
+        self.curves_buttons[len(self.curves_buttons)-1].grid(row=0, column=len(self.curves_buttons), pady=5, padx=5)
+
+    def show_frame_right(self):
+        self.frame_right.grid(row=1, column=1, sticky="nse", padx=0, pady=(10,0))
+    
+    def button_existing_curve_click(self,c):
+        self.curves_buttons[c].configure(fg_color="blue")
+        #['#72CF9F', '#11B384']
+        for i, btns in enumerate(self.curves_buttons):
+            if i != c:
+                self.curves_buttons[i].configure(fg_color=['#72CF9F', '#11B384']) # hard code achtung besser machen (notfall farbe von anderem button übernehmen)
+        self.label_curve_name.configure(text=self.curves_buttons[c].text)
+        self.active_curve(c)
+        self.frame_right.grid_forget()
+
+    def create_new_curve(self):
+
+        self.motor = self.entry_motor.get()
+        self.zyklus = self.entry_zyklus.get()
+        self.name = self.entry_name.get()
+        self.takt = self.entry_takt.get()
+        self.new_curve_window.destroy()
+
+        self.frame_right.grid_forget()
+        self.new_curve_button()
+
+        newcurve = Kurve.Curve(self.name ,int(self.takt), int(self.zyklus))
+        self.curves.append(newcurve)
+        self.active_curve(len(self.curves)-1)
+        
+    def active_curve(self,curve_i):
+        self.curve_index = curve_i
+
+    def show_section_frame(self):
+        self.show_frame_right()
+    
+    def new_section_button(self):
+        
+        text = "Section {}".format(len(self.sections_buttons)+1)
+        self.sections_buttons.append(customtkinter.CTkButton(master=self.frame_left, text=text, command=lambda c_s=len(self.sections_buttons): self.button_existing_section_click(c_s), width=70, height=30))
+        self.sections_buttons[len(self.sections_buttons)-1].grid(row=len(self.sections_buttons), column=0, pady=5, padx=5)
+
+    def button_existing_section_click(self,c_s):
+        self.sections_buttons[c_s].configure(fg_color="blue")
+        #['#72CF9F', '#11B384']
+        for i, btns in enumerate(self.sections_buttons):
+            if i != c_s:
+                self.sections_buttons[i].configure(fg_color=['#72CF9F', '#11B384']) # hard code achtung besser machen (notfall farbe von anderem button übernehmen)
+
 
     def create_section(self):
     
@@ -151,28 +195,30 @@ class App(customtkinter.CTk):
         s_end = float(self.entry_s_end.get())
         rule = self.dropdown_rule.get()
 
-        self.new_position = self.curve.get_number_of_sections() + 1
+        self.new_position = self.curves[self.curve_index].get_number_of_sections() + 1
 
-        self.sec = self.curve.create_section(t_start, t_end, s_start, s_end, self.new_position ,rule)
+        self.sec = self.curves[self.curve_index].create_section(t_start, t_end, s_start, s_end, self.new_position ,rule)
 
-        self.curve.add_section(self.sec)
+        self.curves[self.curve_index].add_section(self.sec)
         self.show_sec_info()
 
         self.change_input_posibilities(t_end, s_end)
 
+        self.new_section_button()
+    
     def show_sec_info(self): #display sec info perma
         this_text = self.sec.info
         self.label = customtkinter.CTkLabel(master=self.frame_right, text=this_text)
         this_row = self.sec.pos+13
         self.label.grid(row=this_row,column=1)
- 
+    
     def graph(self): 
         
-        t = self.curve.t
-        p = self.curve.p
-        v = self.curve.v
-        a = self.curve.a
-        points = self.curve.points
+        t = self.curves[self.curve_index].t
+        p = self.curves[self.curve_index].p
+        v = self.curves[self.curve_index].v
+        a = self.curves[self.curve_index].a
+        points = self.curves[self.curve_index].points
 
         points_t = [i[0] for i in points]
         points_p = [i[1] for i in points]
@@ -193,8 +239,7 @@ class App(customtkinter.CTk):
         plt.plot(t, a)
         plt.xlim(0, 360)
         plt.show()
-
-
+    
     def change_input_posibilities(self, t_end, s_end):
         self.entry_t_start.configure(state=tkinter.NORMAL, text_color="green")
         self.entry_t_start.delete(0, tkinter.END)
@@ -206,18 +251,65 @@ class App(customtkinter.CTk):
         self.entry_s_start.insert(0,s_end)
         self.entry_s_start.configure(state=tkinter.DISABLED, text_color="green")
         self.entry_s_end.delete(0, tkinter.END)
-        
 
     def change_appearance_mode(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
 
-    def debug_button(self):
-        print(len(self.curve.sections))
+    def open_new_curve_window(self):
+        self.new_curve_window = tkinter.Toplevel()
+        self.new_curve_window.geometry("400x580")
+        self.new_curve_window.title("Neue Kurve erstellen")
+        self.new_curve_window.minsize(350,200)
+
+        self.new_curve_window.grid_columnconfigure(0, weight=1, minsize=230, )
+        self.new_curve_window.grid_rowconfigure(0, weight=1, minsize=380)
+
+        frame_new = customtkinter.CTkFrame(master=self.new_curve_window, corner_radius=10)
+        frame_new.grid(row=0, column=0, sticky="nswe", pady=20, padx=20)
+
+        label_1 = customtkinter.CTkLabel(master=frame_new, text="Neue Kurve:")
+        label_1.grid(row=0, column=0, columnspan=2, sticky="nswe", pady=20, padx=20)
+        
+        label_name = customtkinter.CTkLabel(master=frame_new, text="Benennung:")
+        label_name.grid(row=1, column=0, sticky="nswe", pady=2, padx=2)
+        self.entry_name =customtkinter.CTkEntry(master=frame_new,placeholder_text="Modul ...")
+        self.entry_name.grid(row=1, column=1, sticky="nswe", pady=2, padx=2)
+
+        label_motor = customtkinter.CTkLabel(master=frame_new, text="Motor:")
+        label_motor.grid(row=2, column=0, sticky="nswe", pady=2, padx=2)
+        self.entry_motor =customtkinter.CTkEntry(master=frame_new,placeholder_text="Motor")
+        self.entry_motor.grid(row=2, column=1, sticky="nswe", pady=2, padx=2)
+
+        label_zyklus = customtkinter.CTkLabel(master=frame_new, text="Zyklus:")
+        label_zyklus.grid(row=3, column=0, sticky="nswe", pady=2, padx=2)
+        self.entry_zyklus =customtkinter.CTkEntry(master=frame_new,placeholder_text="°")
+        self.entry_zyklus.grid(row=3, column=1, sticky="nswe", pady=2, padx=2)
+
+        label_takt = customtkinter.CTkLabel(master=frame_new, text="Takt:")
+        label_takt.grid(row=4, column=0, sticky="nswe", pady=2, padx=2)
+        self.entry_takt =customtkinter.CTkEntry(master=frame_new,placeholder_text="Zyklen/Minute")
+        self.entry_takt.grid(row=4, column=1, sticky="nswe", pady=2, padx=2)
+
+        button_create_curve = customtkinter.CTkButton(master = frame_new, text="Erstellen", width=40, command=self.create_new_curve)
+        button_create_curve.grid(row=6, column=0, columnspan=2, pady=50)
+
+        """ if self.zyklus != "":
+            self.entry_zyklus.insert(0,self.zyklus)
+        if self.takt != "":
+            self.entry_takt.insert(0,self.takt) """ # wieder verwenden wenn filling ausgeschaltet wird
+
+        #filling for easier debuging
+
+        self.entry_takt.insert(0,"60")
+        self.entry_name.insert(0,"Modul Eingang")
+        self.entry_zyklus.insert(0,"360")
+        self.entry_motor.insert(0,"VPL - 3601A4B14")
+
 
     def on_closing(self, event=0):
         self.destroy()
         self.quit()
 
+
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    main()

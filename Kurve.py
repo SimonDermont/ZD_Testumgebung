@@ -14,11 +14,11 @@ class Section():
         self.cycle = zyklus
         self.scale = auflosung
 
-        self.data_ammount = self.scale*self.cycle+1
+        self.data_ammount = 2 * self.scale*self.cycle+1
 
-        self.t_data = np.linspace(0,self.cycle,num=self.data_ammount) # 360 hardcode - 14400 hardcode
+        self.t_data = np.linspace(0,self.cycle*2,num=self.data_ammount) # 360 hardcode - 14400 hardcode
         self.distance = self.p_e - self.p_s
-        
+
         self.info = "I am {} with Ts={}, Te={}, s={} and {}".format(self.pos, self.t_s, self.t_e, self.distance, self.rule)
 
         print(self.info) #debuging statement
@@ -45,6 +45,8 @@ class Section():
         self.a_data = np.full(self.data_ammount,0) # 14400 hardcode
 
     def calc_poly(self, v_s = 0, a_s = 0, v_e = 0, a_e = 0, wp = 0.5):
+        print("calc poly with p0:{} v0:{} a0:{} p1:{} v1:{} a1:{}".format (self.p_s,v_s,a_s,self.p_e,v_e,a_e))
+
         if self.t_s > self.t_e:
             t_e_calc = self.t_e + self.cycle
         else:
@@ -120,7 +122,7 @@ class Curve():
                     continue
             if sec.t_s > sec.t_e:
                 i_start = int(sec.t_s*self.scale)
-                i_end = int(sec.t_e*self.scale)
+                i_end = int(sec.t_e*self.scale+1)
                 i_full = int(self.zyklus*self.scale+1)
                 i_over = int(i_full+i_end)
                 self.p[i_start:] = sec.p_data[i_start:i_full]
@@ -132,7 +134,7 @@ class Curve():
 
             else:
                 i_start = int(sec.t_s*self.scale)
-                i_end = int(sec.t_e*self.scale)
+                i_end = int(sec.t_e*self.scale+1)
                 self.p[i_start:i_end] = sec.p_data[i_start:i_end]
                 self.v[i_start:i_end] = sec.v_data[i_start:i_end]
                 self.a[i_start:i_end] = sec.a_data[i_start:i_end]
@@ -150,10 +152,10 @@ class Curve():
                     a1 = self.a[int(sec.t_e*self.scale)]
                     sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
                 case "poly 5 connector":
-                    v0 = self.v[int(sec.t_s*self.scale)-1]
-                    a0 = self.a[int(sec.t_s*self.scale)-1]
-                    v1 = self.v[int(sec.t_e*self.scale)]
-                    a1 = self.a[int(sec.t_e*self.scale)]
+                    v0 = self.v[int(sec.t_s*self.scale)] # oder mit -1 muss aber null sein - indizes überprüfen
+                    a0 = self.a[int(sec.t_s*self.scale)]
+                    v1 = self.v[int(sec.t_e*self.scale)-1]
+                    a1 = self.a[int(sec.t_e*self.scale)-1]
                     sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
             if sec.t_s > sec.t_e:
                 i_start = int(sec.t_s*self.scale)
@@ -194,6 +196,7 @@ class Curve():
 
         if self.get_total_time() != self.zyklus:
             self.create_connection(this_section.pos)
+        
         self.calculate_data()
     
     def create_section(self,t_start, t_end, p_start, p_end, position_in_curve ,rule):
@@ -232,9 +235,10 @@ class Curve():
         time = 0
         for sec in self.sections:
             if sec.t_s > sec.t_e:
-                time = time + sec.t_s + self.zyklus - sec.t_e
+                time = time + sec.t_e + self.zyklus - sec.t_s
             else:
                 time = time + sec.t_e - sec.t_s
+        print(time)
         return time
             
 
