@@ -199,7 +199,7 @@ class Curve():
         
         self.calculate_data()
     
-    def create_section(self,t_start, t_end, p_start, p_end, position_in_curve ,rule):
+    def create_section(self,t_start, t_end, p_start, p_end, position_in_curve ,rule) -> Section:
         new_section = Section(t_start , t_end, p_start, p_end, position_in_curve, rule, self.zyklus, self.scale)
         return new_section
 
@@ -224,7 +224,7 @@ class Curve():
         connect_section = self.create_section(this_t_s , this_t_e, this_p_s, this_p_e, this_pos, "poly 5 connector")
         self.sections.append(connect_section)
 
-    def get_number_of_sections(self):
+    def get_number_of_sections(self) -> int:
         if len(self.sections) == 0:
             return 0
         else:

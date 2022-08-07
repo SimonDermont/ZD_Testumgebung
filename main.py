@@ -6,6 +6,12 @@ import customtkinter
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+matplotlib.use("TkAgg")
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+
+
 import os
 from PIL import Image, ImageTk
 
@@ -89,6 +95,9 @@ class App(customtkinter.CTk):
 
         # ============ frame_right ============
 
+        self.frame_right.grid_forget()
+
+    def draw_frame_right(self):
         self.label_section1 = customtkinter.CTkLabel(master=self.frame_right, text="Section 1",text_font=("Roboto Medium", -12))
         self.label_section1.grid(row=0, column=0, columnspan=1, pady=10, padx=0)
 
@@ -121,16 +130,13 @@ class App(customtkinter.CTk):
         self.label_s_end.pack(side="left")
         self.entry_s_end = customtkinter.CTkEntry(master=self.frame_right_end, width=60, placeholder_text="s_end")
         self.entry_s_end.pack(side="left")
-
-
-        self.button_calculate = customtkinter.CTkButton(master=self.frame_right, text="Abschnitt erstellen",command=self.create_section)
+        # ============ frame_right buttons ============
+        self.button_calculate = customtkinter.CTkButton(master=self.frame_right, text="Abschnitt erstellen",command=self.create_new_section)
         self.button_calculate.grid(row=11,column=1, pady=10,padx=20)
 
         self.button_plot = customtkinter.CTkButton(master=self.frame_right, text="Kurve darstellen",command=self.graph)
         self.button_plot.grid(row=12,column=1, pady=10,padx=20)
-        
-
-        self.frame_right.grid_forget()
+            
 
     def new_curve_button(self):
         
@@ -140,6 +146,7 @@ class App(customtkinter.CTk):
         self.curves_buttons[len(self.curves_buttons)-1].grid(row=0, column=len(self.curves_buttons), pady=5, padx=5)
 
     def show_frame_right(self):
+        self.draw_frame_right()
         self.frame_right.grid(row=1, column=1, sticky="nse", padx=0, pady=(10,0))
     
     def button_existing_curve_click(self,c):
@@ -175,7 +182,7 @@ class App(customtkinter.CTk):
     
     def new_section_button(self):
         
-        text = "Section {}".format(len(self.sections_buttons)+1)
+        text = "Abschnitt {}".format(len(self.sections_buttons)+1)
         self.sections_buttons.append(customtkinter.CTkButton(master=self.frame_left, text=text, command=lambda c_s=len(self.sections_buttons): self.button_existing_section_click(c_s), width=70, height=30))
         self.sections_buttons[len(self.sections_buttons)-1].grid(row=len(self.sections_buttons), column=0, pady=5, padx=5)
 
@@ -185,9 +192,9 @@ class App(customtkinter.CTk):
         for i, btns in enumerate(self.sections_buttons):
             if i != c_s:
                 self.sections_buttons[i].configure(fg_color=['#72CF9F', '#11B384']) # hard code achtung besser machen (notfall farbe von anderem button übernehmen)
+        self.show_frame_right()
 
-
-    def create_section(self):
+    def create_new_section(self) -> None:
     
         t_start = float(self.entry_t_start.get())
         t_end = float(self.entry_t_end.get())
@@ -203,8 +210,8 @@ class App(customtkinter.CTk):
         self.show_sec_info()
 
         self.change_input_posibilities(t_end, s_end)
-
         self.new_section_button()
+        self.graph()
     
     def show_sec_info(self): #display sec info perma
         this_text = self.sec.info
@@ -213,7 +220,8 @@ class App(customtkinter.CTk):
         self.label.grid(row=this_row,column=1)
     
     def graph(self): 
-        
+        for widget in self.frame_middle.winfo_children():
+            widget.destroy()
         t = self.curves[self.curve_index].t
         p = self.curves[self.curve_index].p
         v = self.curves[self.curve_index].v
@@ -223,10 +231,32 @@ class App(customtkinter.CTk):
         points_t = [i[0] for i in points]
         points_p = [i[1] for i in points]
 
-        ax1 = plt.subplot(311)
-        plt.plot(t, p)
-        plt.scatter(points_t,points_p)
-        plt.tick_params('x', labelsize=6)
+        figure = Figure(figsize=(10,6),dpi=100)
+        figure_canvas = FigureCanvasTkAgg(figure, self.frame_middle)
+        #NavigationToolbar2Tk(figure_canvas, self)
+
+
+        ax1 = figure.add_subplot(311)
+        ax1.plot(t,p)
+        ax1.set_xticks(np.arange(0, 390, 30))
+        ax1.xaxis.tick_top()
+        ax1.legend("p")
+        ax1.scatter(points_t,points_p)
+        ax1.grid(visible=True)
+
+        ax2 = figure.add_subplot(312, sharex=ax1)
+        ax2.plot(t, v)
+        ax2.tick_params("x", labelbottom=False)
+        ax2.grid(visible=True)
+        
+        ax3 = figure.add_subplot(313, sharex=ax1)
+        ax3.plot(t, a)
+        ax3.grid(visible=True)
+        ax3.set_xlim(0,360)
+        
+        figure_canvas.get_tk_widget().pack()
+
+        """ plt.tick_params('x', labelsize=6)
         plt.xticks(np.arange(0, 360, 30))
         ax1.legend("p")
 
@@ -238,7 +268,7 @@ class App(customtkinter.CTk):
         ax3 = plt.subplot(313, sharex=ax1)
         plt.plot(t, a)
         plt.xlim(0, 360)
-        plt.show()
+        plt.show() """
     
     def change_input_posibilities(self, t_end, s_end):
         self.entry_t_start.configure(state=tkinter.NORMAL, text_color="green")
