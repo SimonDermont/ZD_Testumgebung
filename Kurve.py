@@ -146,17 +146,29 @@ class Curve():
                 case "v. const.":
                     continue
                 case "Poly 5":
-                    v0 = self.v[int(sec.t_s*self.scale)-1]
+                    v0 = self.v[int(sec.t_s*self.scale)-1] #eventuel wieder einführen
                     a0 = self.a[int(sec.t_s*self.scale)-1]
                     v1 = self.v[int(sec.t_e*self.scale)]
                     a1 = self.a[int(sec.t_e*self.scale)]
-                    sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
+                    # -===================== anfangsbedingungen die sehr klein sind auf 0 setzen --- sollte ev. besser gelöst werden indizes überprüfen (weshalb sind die AB manchmal nicht 0)
+                    start_conditions = [self.v[int(sec.t_s*self.scale)-1],self.a[int(sec.t_s*self.scale)-1],self.v[int(sec.t_e*self.scale)],self.a[int(sec.t_e*self.scale)]]
+                    for i, val in enumerate(start_conditions):
+                        if val < 0.01 and val > -0.01:
+                            start_conditions[i]=0
+
+                    sec.calc_poly(v_s =start_conditions[0] , a_s =start_conditions[1] , v_e =start_conditions[2] , a_e =start_conditions[3])
+
                 case "poly 5 connector":
-                    v0 = self.v[int(sec.t_s*self.scale)] # oder mit -1 muss aber null sein - indizes überprüfen
+                    v0 = self.v[int(sec.t_s*self.scale)] # hier auch
                     a0 = self.a[int(sec.t_s*self.scale)]
                     v1 = self.v[int(sec.t_e*self.scale)-1]
                     a1 = self.a[int(sec.t_e*self.scale)-1]
-                    sec.calc_poly(v_s =v0 , a_s =a0 , v_e =v1 , a_e =a1)
+                    start_conditions = [self.v[int(sec.t_s*self.scale)],self.a[int(sec.t_s*self.scale)],self.v[int(sec.t_e*self.scale)-1],self.a[int(sec.t_e*self.scale)-1]]
+                    for i, val in enumerate(start_conditions):
+                        if val < 0.01 and val > -0.01:
+                            start_conditions[i]=0
+
+                    sec.calc_poly(v_s =start_conditions[0] , a_s =start_conditions[1] , v_e =start_conditions[2] , a_e =start_conditions[3])
             if sec.t_s > sec.t_e:
                 i_start = int(sec.t_s*self.scale)
                 i_end = int(sec.t_e*self.scale)

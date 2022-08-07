@@ -98,6 +98,10 @@ class App(customtkinter.CTk):
         self.frame_right.grid_forget()
 
     def draw_frame_right(self):
+
+        for widget in self.frame_right.winfo_children():
+            widget.destroy()
+
         self.label_section1 = customtkinter.CTkLabel(master=self.frame_right, text="Section 1",text_font=("Roboto Medium", -12))
         self.label_section1.grid(row=0, column=0, columnspan=1, pady=10, padx=0)
 
@@ -255,20 +259,6 @@ class App(customtkinter.CTk):
         ax3.set_xlim(0,360)
         
         figure_canvas.get_tk_widget().pack()
-
-        """ plt.tick_params('x', labelsize=6)
-        plt.xticks(np.arange(0, 360, 30))
-        ax1.legend("p")
-
-        ax2 = plt.subplot(312, sharex=ax1)
-        plt.plot(t, v)
-        plt.tick_params('x', labelbottom=False)
-
-        # share x and y
-        ax3 = plt.subplot(313, sharex=ax1)
-        plt.plot(t, a)
-        plt.xlim(0, 360)
-        plt.show() """
     
     def change_input_posibilities(self, t_end, s_end):
         self.entry_t_start.configure(state=tkinter.NORMAL, text_color="green")
