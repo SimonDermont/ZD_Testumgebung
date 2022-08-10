@@ -33,7 +33,7 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Zeitdiagramm")
+        self.title("Ein Traum aus Linien")
         self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
         self.minsize(800,350)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
@@ -140,7 +140,47 @@ class App(customtkinter.CTk):
 
         self.button_plot = customtkinter.CTkButton(master=self.frame_right, text="Kurve darstellen",command=self.graph)
         self.button_plot.grid(row=12,column=1, pady=10,padx=20)
-            
+
+    def draw_frame_right_existing(self):
+
+        for widget in self.frame_right.winfo_children():
+            widget.destroy()
+
+        self.label_section1 = customtkinter.CTkLabel(master=self.frame_right, text="Section 1",text_font=("Roboto Medium", -12))
+        self.label_section1.grid(row=0, column=0, columnspan=1, pady=10, padx=0)
+
+        self.dropdown_rule = customtkinter.CTkOptionMenu(master=self.frame_right,values=["Rast", "v. const.", "Poly 5"])
+        self.dropdown_rule.grid(row=0, column=1, columnspan=1, pady=0, padx=10)
+        self.dropdown_rule.set("Bewegungsgesetz")
+        # ============ frame_right_start ============
+        self.frame_right_start = customtkinter.CTkFrame(master=self.frame_right, corner_radius=0)
+        self.frame_right_start.grid(row=1, column=0, columnspan=2, pady=5, padx=2)
+
+        self.label_t_start = customtkinter.CTkLabel(master=self.frame_right_start, text="t_start",text_font=("Roboto Medium", -10), width=60)
+        self.label_t_start.pack(side="left")
+        self.entry_t_start = customtkinter.CTkEntry(master=self.frame_right_start, width=60, placeholder_text="t_start" )
+        self.entry_t_start.pack(side="left")
+
+        self.label_s_start = customtkinter.CTkLabel(master=self.frame_right_start, text="s_start",text_font=("Roboto Medium", -10), width=60)
+        self.label_s_start.pack(side="left")
+        self.entry_s_start = customtkinter.CTkEntry(master=self.frame_right_start, width=60, placeholder_text="s_start")
+        self.entry_s_start.pack(side="left")
+        # ============ frame_right_end ============
+        self.frame_right_end = customtkinter.CTkFrame(master=self.frame_right, corner_radius=0)
+        self.frame_right_end.grid(row=2, column=0, columnspan=2, pady=5, padx=2)
+
+        self.label_t_end = customtkinter.CTkLabel(master=self.frame_right_end, text="t_end",text_font=("Roboto Medium", -10), width=60)
+        self.label_t_end.pack(side="left")
+        self.entry_t_end = customtkinter.CTkEntry(master=self.frame_right_end, width=60, placeholder_text="t_end")
+        self.entry_t_end.pack(side="left")
+
+        self.label_s_end = customtkinter.CTkLabel(master=self.frame_right_end, text="s_end",text_font=("Roboto Medium", -10), width=60)
+        self.label_s_end.pack(side="left")
+        self.entry_s_end = customtkinter.CTkEntry(master=self.frame_right_end, width=60, placeholder_text="s_end")
+        self.entry_s_end.pack(side="left")
+        # ============ frame_right buttons ============
+        self.button_calculate = customtkinter.CTkButton(master=self.frame_right, text="Änderung übernehmen",command=self.update_section)
+        self.button_calculate.grid(row=11,column=1, pady=10,padx=20)     
 
     def new_curve_button(self):
         
@@ -160,7 +200,7 @@ class App(customtkinter.CTk):
             if i != c:
                 self.curves_buttons[i].configure(fg_color=['#72CF9F', '#11B384']) # hard code achtung besser machen (notfall farbe von anderem button übernehmen)
         self.label_curve_name.configure(text=self.curves_buttons[c].text)
-        self.active_curve(c)
+        self.active_curve(c) #aktive Kurve festlegen
         self.frame_right.grid_forget()
 
     def create_new_curve(self):
@@ -181,6 +221,9 @@ class App(customtkinter.CTk):
     def active_curve(self,curve_i):
         self.curve_index = curve_i
 
+    def active_section(self,section_i):
+        self.section_index = section_i
+        
     def show_section_frame(self):
         self.show_frame_right()
     
@@ -196,41 +239,52 @@ class App(customtkinter.CTk):
         for i, btns in enumerate(self.sections_buttons):
             if i != c_s:
                 self.sections_buttons[i].configure(fg_color=['#72CF9F', '#11B384']) # hard code achtung besser machen (notfall farbe von anderem button übernehmen)
-        self.show_frame_right()
+        self.draw_frame_right_existing()
+        self.frame_right.grid(row=1, column=1, sticky="nse", padx=0, pady=(10,0))
+        self.active_section(c_s)
 
     def create_new_section(self) -> None:
-    
         t_start = float(self.entry_t_start.get())
         t_end = float(self.entry_t_end.get())
         s_start = float(self.entry_s_start.get())
         s_end = float(self.entry_s_end.get())
         rule = self.dropdown_rule.get()
 
-        self.new_position = self.curves[self.curve_index].get_number_of_sections() + 1
+        active_curve = self.curves[self.curve_index]
 
-        self.sec = self.curves[self.curve_index].create_section(t_start, t_end, s_start, s_end, self.new_position ,rule)
+        self.new_position = active_curve.get_number_of_sections() + 1
 
-        self.curves[self.curve_index].add_section(self.sec)
-        self.show_sec_info()
+        self.sec = active_curve.create_section(t_start, t_end, s_start, s_end, self.new_position ,rule)
+
+        active_curve.add_section(self.sec)
 
         self.change_input_posibilities(t_end, s_end)
         self.new_section_button()
         self.graph()
     
-    def show_sec_info(self): #display sec info perma
-        this_text = self.sec.info
-        self.label = customtkinter.CTkLabel(master=self.frame_right, text=this_text)
-        this_row = self.sec.pos+13
-        self.label.grid(row=this_row,column=1)
-    
+    def update_section(self): #button change section click
+        #t_start = float(self.entry_t_start.get())
+        t_end = float(self.entry_t_end.get())
+        #p_start = float(self.entry_s_start.get())
+        p_end = float(self.entry_s_end.get())
+        rule = self.dropdown_rule.get()
+
+        active_curve = self.curves[self.curve_index]
+        self.sec = active_curve.sections[self.section_index]
+
+        active_curve.update_section(self.sec,t_end,p_end,rule)
+        self.graph()
+   
     def graph(self): 
         for widget in self.frame_middle.winfo_children():
             widget.destroy()
-        t = self.curves[self.curve_index].t
-        p = self.curves[self.curve_index].p
-        v = self.curves[self.curve_index].v
-        a = self.curves[self.curve_index].a
-        points = self.curves[self.curve_index].points
+        active_curve = self.curves[self.curve_index]
+
+        t = active_curve.t
+        p = active_curve.p
+        v = active_curve.v
+        a = active_curve.a
+        points = active_curve.points
 
         points_t = [i[0] for i in points]
         points_p = [i[1] for i in points]

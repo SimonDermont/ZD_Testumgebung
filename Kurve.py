@@ -23,7 +23,7 @@ class Section():
 
         print(self.info) #debuging statement
 
-    def update_section(self):
+    def update_section_info(self):
         self.distance = self.p_e - self.p_s
         self.info = "I am {} with Ts={}, Te={}, s={} and {}".format(self.pos, self.t_s, self.t_e, self.distance, self.rule)
 
@@ -77,7 +77,7 @@ class Section():
         self.a_data = [np.polynomial.polynomial.polyval(i,a.coef) for i in self.t_data]
 
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.info 
  
 
@@ -92,10 +92,13 @@ class Curve():
         self.zyklus = zyklus
         self.scale = 20
 
-        self.t = np.linspace(0,self.zyklus,num=zyklus*self.scale+1)
-        self.p = np.zeros(zyklus*self.scale+1)
-        self.v = np.zeros(zyklus*self.scale+1)
-        self.a = np.zeros(zyklus*self.scale+1)
+        self.set_data_zero()
+
+    def set_data_zero(self):
+        self.t = np.linspace(0,self.zyklus,num=self.zyklus*self.scale+1)
+        self.p = np.zeros(self.zyklus*self.scale+1)
+        self.v = np.zeros(self.zyklus*self.scale+1)
+        self.a = np.zeros(self.zyklus*self.scale+1)
 
     def create_data_matrix (self): #to store curve data somewhere
         self.data_matrix = np.array([self.t,self.p,self.v,self.a])
@@ -211,6 +214,24 @@ class Curve():
         
         self.calculate_data()
     
+    def update_section(self, this_section,new_t_end,new_p_end,new_rule):
+        self.points[this_section.pos][0] = new_t_end
+        self.points[this_section.pos][1] = new_p_end
+        this_section.rule = new_rule
+        this_section.t_e = new_t_end
+        this_section.p_e = new_p_end
+        
+        #change folowing section //////// what if its last section?
+        self.sections[this_section.pos].t_s = new_t_end
+        self.sections[this_section.pos].p_s = new_p_end
+
+
+        self.set_data_zero()
+        this_section.update_section_info()
+        if self.get_total_time() != self.zyklus:
+            self.create_connection(this_section.pos)
+        self.calculate_data()
+    
     def create_section(self,t_start, t_end, p_start, p_end, position_in_curve ,rule) -> Section:
         new_section = Section(t_start , t_end, p_start, p_end, position_in_curve, rule, self.zyklus, self.scale)
         return new_section
@@ -225,13 +246,13 @@ class Curve():
 
         this_pos = pos + 1
 
-        this_t_s = self.points[-1][0]
-        if self.points[0][0] == 0:
+        this_t_s = self.sections[-1].t_e
+        if self.sections[0].t_s == 0:
             this_t_e = 360
         else:
-            this_t_e = self.points[0][0]
-        this_p_s = self.points[-1][1]
-        this_p_e = self.points[0][1]
+            this_t_e = self.sections[0].t_s
+        this_p_s = self.sections[-1].p_e
+        this_p_e = self.sections[0].p_s
 
         connect_section = self.create_section(this_t_s , this_t_e, this_p_s, this_p_e, this_pos, "poly 5 connector")
         self.sections.append(connect_section)
@@ -250,7 +271,6 @@ class Curve():
                 time = time + sec.t_e + self.zyklus - sec.t_s
             else:
                 time = time + sec.t_e - sec.t_s
-        print(time)
         return time
             
 
