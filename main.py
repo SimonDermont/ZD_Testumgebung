@@ -451,7 +451,6 @@ class App(customtkinter.CTk):
             
             if  min([sec.p_s,sec.p_e]) < position < max([sec.p_s,sec.p_e]):
                 time = sec.find_intersection(position)
-                secinfo=sec.info
                 intersect_times += " and "+ str(time)
 
         self.label_p_at_pos.configure(text=intersect_times)
