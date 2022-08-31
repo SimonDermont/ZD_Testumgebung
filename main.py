@@ -1,5 +1,7 @@
 # 'https://www.inventicons.com/inventicons'>Add Chart vector icon created by Invent Icons - InventIcons.com
 
+
+from tkinter import DISABLED, font
 import Kurve
 from PIL import Image, ImageTk
 import os
@@ -46,6 +48,7 @@ class App(customtkinter.CTk):
         self.sections_buttons = []
         self.curves = []
         self.zyklus = ""
+        self.show_time = 0
 
         add_curve_image = ImageTk.PhotoImage(Image.open(
             PATH + "/images/add-curve.png").resize((image_size, image_size)))
@@ -59,7 +62,7 @@ class App(customtkinter.CTk):
         self.grid_rowconfigure(0, weight=1, minsize=380)
 
         self.frame_left = customtkinter.CTkFrame(
-            master=self, width=80, corner_radius=0)
+            master=self, name="f_left", width=80, corner_radius=0)
         self.frame_left.grid(row=0, column=0, sticky="nswe")
 
         self.frame_main = customtkinter.CTkFrame(master=self, corner_radius=0)
@@ -107,14 +110,71 @@ class App(customtkinter.CTk):
             widget.destroy()
 
         self.label_frame_right = customtkinter.CTkLabel(
-            master=self.frame_right, text="Daten", text_font=("Roboto Medium", -12))
+            master=self.frame_right, text="Daten "+self.active_curve.name, text_font=("Roboto Medium", -12))
         self.label_frame_right.grid(
             row=0, column=0, columnspan=1, pady=10, padx=0)
+
+        self.entry_time = customtkinter.CTkEntry(master=self.frame_right, width=60)
+        self.entry_time.bind("<Return>", self.show_data_at_time)
+        if self.show_time != 0:
+            self.entry_time.insert(0,self.show_time)
+        else:
+            self.entry_time.insert(0,0)
+        self.entry_time.grid(row=1, column=0)
         
 
+        self.label_p_at_t = customtkinter.CTkLabel(master=self.frame_right, text="p({})".format(self.show_time))
+        self.label_p_at_t.grid(row=2, column=0)
+        self.label_v_at_t = customtkinter.CTkLabel(master=self.frame_right, text="v({})".format(self.show_time))
+        self.label_v_at_t.grid(row=3, column=0)
+        self.label_a_at_t = customtkinter.CTkLabel(master=self.frame_right, text="a({})".format(self.show_time))
+        self.label_a_at_t.grid(row=4, column=0)
+
+        self.label_p_at_time = customtkinter.CTkLabel(master=self.frame_right, text="set_time")
+        self.label_p_at_time.grid(row=2, column=1)
+        self.label_v_at_time = customtkinter.CTkLabel(master=self.frame_right, text="set_time")
+        self.label_v_at_time.grid(row=3, column=1)
+        self.label_a_at_time = customtkinter.CTkLabel(master=self.frame_right, text="set_time")
+        self.label_a_at_time.grid(row=4, column=1)
+
+        self.entry_pos = customtkinter.CTkEntry(master=self.frame_right, width=60, placeholder_text="time")
+        self.entry_pos.bind("<Return>", self.show_data_at_pos)
+        self.entry_pos.grid(row=5, column=0)
+
+        self.label_t_at_pos = customtkinter.CTkLabel(master=self.frame_right, text="t_at_pos")
+        self.label_t_at_pos.grid(row=6, column=0)
+
+        self.label_p_at_pos = customtkinter.CTkLabel(master=self.frame_right, text="set_pos")
+        self.label_p_at_pos.grid(row=6, column=1)
+
+        self.label_p_min = customtkinter.CTkLabel(master=self.frame_right, text="P min = "+str(self.active_curve.p_min))
+        self.label_p_min.grid(row=7, column=0)
+        self.label_p_max = customtkinter.CTkLabel(master=self.frame_right, text="P max = "+str(self.active_curve.p_max))
+        self.label_p_max.grid(row=7, column=1)
+
+        self.label_v_min = customtkinter.CTkLabel(master=self.frame_right, text="V min = "+str(self.active_curve.v_min))
+        self.label_v_min.grid(row=8, column=0)
+        self.label_v_max = customtkinter.CTkLabel(master=self.frame_right, text="V max = "+str(self.active_curve.v_max))
+        self.label_v_max.grid(row=8, column=1)
+
+        self.label_a_min = customtkinter.CTkLabel(master=self.frame_right, text="A min = "+str(self.active_curve.a_min))
+        self.label_a_min.grid(row=9, column=0)
+        self.label_a_max = customtkinter.CTkLabel(master=self.frame_right, text="A max = "+str(self.active_curve.a_max))
+        self.label_a_max.grid(row=9, column=1)
         
+        
+        self.frame_section_info = customtkinter.CTkFrame(master=self.frame_right, corner_radius=0)
+        self.frame_section_info.grid(row=10, column=0, columnspan=2)
+
+        for sec in self.active_curve.sections:
+            label = customtkinter.CTkLabel(master=self.frame_section_info, text=sec.info)
+            if sec.rule == "poly 5 c":
+                label.configure(fg='#f00')
+            label.pack(anchor="w")
+
         self.frame_right.grid(
             row=1, column=1, sticky="nse", padx=0, pady=(10, 0))
+        self.show_data_at_time()
 
     def draw_frame_right_section(self):
 
@@ -173,7 +233,6 @@ class App(customtkinter.CTk):
             master=self.frame_right, text="Abschnitt erstellen", command=self.create_new_section)
         self.button_calculate.grid(row=11, column=1, pady=10, padx=20)
 
-    # populate widgets acording to selected section
     def populate_existing_section_frame(self, this_section: Kurve.Section):
         self.label_frame_right.configure(
             text="Abschnitt {}".format(this_section.pos))
@@ -200,7 +259,7 @@ class App(customtkinter.CTk):
 
     def show_section_frame(self):
         try:
-            existing_sections = len(self.curves[self.curve_index].sections)
+            existing_sections = len(self.active_curve.sections)
         except:
             print("initalising GUI")
             existing_sections = 0
@@ -210,7 +269,7 @@ class App(customtkinter.CTk):
         else:
             self.draw_frame_right_section()
             self.populate_sucsessor_frame(
-                self.curves[self.curve_index].sections[-1])
+                self.active_curve.sections[-1])
         self.frame_right.grid(
             row=1, column=1, sticky="nse", padx=0, pady=(10, 0))
 
@@ -223,9 +282,10 @@ class App(customtkinter.CTk):
                 self.curves_buttons[i].configure(
                     fg_color=['#72CF9F', '#11B384'])
         self.label_curve_name.configure(text=self.curves_buttons[c].text)
-        self.active_curve(c)  # aktive Kurve festlegen
+        self.set_active_curve(c)  # aktive Kurve festlegen
         self.graph()
         self.draw_frame_right_curve()
+        self.section_buttons_display()
 
     def create_new_curve(self):
         self.motor = self.entry_motor.get()
@@ -236,21 +296,40 @@ class App(customtkinter.CTk):
 
         self.frame_right.grid_forget()
         self.create_new_curve_button()
+        #======== display new button as curent curve button
+        self.curves_buttons[-1].configure(fg_color="blue")
+        # ['#72CF9F', '#11B384']
+        for i, btns in enumerate(self.curves_buttons[:-1]):
+
+            self.curves_buttons[i].configure(
+                fg_color=['#72CF9F', '#11B384'])
 
         newcurve = Kurve.Curve(self.name, int(self.takt), int(self.zyklus))
         self.curves.append(newcurve)
-        self.active_curve(len(self.curves)-1)
+        self.set_active_curve(len(self.curves)-1)
 
-    def active_curve(self, curve_i):
-        self.curve_index = curve_i
+    def set_active_curve(self, curve_i):
+        self.active_curve = self.curves[curve_i]
 
-    def active_section(self, section_i):
+    def set_active_section(self, section_i):
         self.section_index = section_i
+        self.active_section = self.active_curve.sections[section_i]
+
+    def section_buttons_display(self):
+        for widget in self.frame_left.winfo_children():
+            if str(widget)[-4:-1] == "btn":
+                widget.destroy()
+
+        self.sections_buttons.clear()
+        for i, sec in enumerate(self.active_curve.sections):
+            self.sections_buttons.append(customtkinter.CTkButton(master=self.frame_left, name="btn{}".format(i+1), text="Abschnitt {}".format(i+1), command=lambda c_s=i: self.button_existing_section_click(c_s), width=70, height=30))
+            if sec.rule == "poly 5 c":
+                self.sections_buttons[i].configure(fg_color="red", state=DISABLED)
+            self.sections_buttons[i].grid(row=i+1, column=0, pady=5, padx=5)
 
     def new_section_button(self):
-
-        text = "Abschnitt {}".format(len(self.sections_buttons)+1)
-        self.sections_buttons.append(customtkinter.CTkButton(master=self.frame_left, text=text, command=lambda c_s=len(
+        number = "{}".format(len(self.sections_buttons)+1)
+        self.sections_buttons.append(customtkinter.CTkButton(master=self.frame_left, name="btn"+number,  text="Abschnitt "+number, command=lambda c_s=len(
             self.sections_buttons): self.button_existing_section_click(c_s), width=70, height=30))
         self.sections_buttons[len(self.sections_buttons)-1].grid(
             row=len(self.sections_buttons), column=0, pady=5, padx=5)
@@ -270,11 +349,10 @@ class App(customtkinter.CTk):
                 self.sections_buttons[i].configure(
                     fg_color=['#72CF9F', '#11B384'])
         self.draw_frame_right_section()
-        self.populate_existing_section_frame(
-            self.curves[self.curve_index].sections[c_s])
+        self.populate_existing_section_frame(self.active_curve.sections[c_s])
         self.frame_right.grid(
             row=1, column=1, sticky="nse", padx=0, pady=(10, 0))
-        self.active_section(c_s)
+        self.set_active_section(c_s)
 
     def create_new_section(self) -> None:
         rule = self.dropdown_rule.get()
@@ -288,17 +366,16 @@ class App(customtkinter.CTk):
         p_start = float(self.entry_p_start.get())
         p_end = float(self.entry_p_end.get())
 
-        active_curve = self.curves[self.curve_index]
+        new_position = self.active_curve.get_number_of_sections() + 1
 
-        new_position = active_curve.get_number_of_sections() + 1
-
-        self.sec = active_curve.create_section(
+        new_section = self.active_curve.create_section(
             t_start, t_end, p_start, p_end, new_position, rule)
 
-        active_curve.add_section(self.sec)
+        self.active_curve.add_section(new_section)
 
         self.change_input_posibilities(t_end, p_end)
         self.new_section_button()
+        self.section_buttons_display()
         self.graph()
 
     def update_section(self):  # button change section click
@@ -308,22 +385,20 @@ class App(customtkinter.CTk):
         p_end = float(self.entry_p_end.get())
         rule = self.dropdown_rule.get()
 
-        active_curve = self.curves[self.curve_index]
-        self.sec = active_curve.sections[self.section_index]
+        sec = self.active_curve.sections[self.section_index]
 
-        active_curve.update_section(self.sec, t_end, p_end, rule)
+        self.active_curve.update_section(sec, t_end, p_end, rule)
         self.graph()
 
     def graph(self):
         for widget in self.frame_middle.winfo_children():
             widget.destroy()
-        active_curve = self.curves[self.curve_index]
 
-        t = active_curve.t
-        p = active_curve.p
-        v = active_curve.v
-        a = active_curve.a
-        points = active_curve.points
+        t = self.active_curve.t
+        p = self.active_curve.p
+        v = self.active_curve.v
+        a = self.active_curve.a
+        points = self.active_curve.points
 
         points_t = [i[0] for i in points]
         points_p = [i[1] for i in points]
@@ -351,6 +426,36 @@ class App(customtkinter.CTk):
         ax3.set_xlim(0, 360)
 
         figure_canvas.get_tk_widget().pack()
+    
+    def show_data_at_time(self,*args):
+        self.show_time = float(self.entry_time.get())
+        index = np.where(self.active_curve.t == self.show_time)
+        np.set_printoptions(suppress=True) ###debug nicht notwendig----------
+
+        pat = round(self.active_curve.p[index[0][0]],3)
+        vat = round(self.active_curve.v[index[0][0]],3)
+        aat = round(self.active_curve.a[index[0][0]],3)
+
+        self.label_p_at_t.configure(text="p({})".format(self.show_time))
+        self.label_v_at_t.configure(text="v({})".format(self.show_time))
+        self.label_a_at_t.configure(text="a({})".format(self.show_time))
+
+        self.label_p_at_time.configure(text=pat)
+        self.label_v_at_time.configure(text=vat)
+        self.label_a_at_time.configure(text=aat)
+
+    def show_data_at_pos(self, *args):
+        position = float(self.entry_pos.get())
+        intersect_times = ""
+        for sec in self.active_curve.sections:
+            
+            if  min([sec.p_s,sec.p_e]) < position < max([sec.p_s,sec.p_e]):
+                time = sec.find_intersection(position)
+                secinfo=sec.info
+                intersect_times += " and "+ str(time)
+
+        self.label_p_at_pos.configure(text=intersect_times)
+
 
     def change_input_posibilities(self, t_end, s_end):
         self.entry_t_start.configure(state=tkinter.NORMAL, text_color="green")
